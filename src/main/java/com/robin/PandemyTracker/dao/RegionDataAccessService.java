@@ -61,17 +61,13 @@ public class RegionDataAccessService implements RegionDao {
     public List<Region> selectAllRegions() {
         final String sql = SELECT_SQL + " GROUP BY a.name";
         return jdbcTemplate.query(sql, (resultSet, i) -> {
+
             String[] weeksArray = (String[]) resultSet.getArray("affected_region_weeks").getArray();
             List<Week> weeks = new ArrayList<>();
             for(int n = 0; n < weeksArray.length; n++) {
                 String[] weeksString = weeksArray[n].split(",");
                 if(weeksString.length == 4) {
-                    weeks.add(new Week(
-                            Integer.parseInt(weeksString[0]),
-                            Integer.parseInt(weeksString[1]),
-                            Integer.parseInt(weeksString[2]),
-                            Integer.parseInt(weeksString[3])
-                    ));
+                    weeks.add(convertStringToWeekData(weeksString));
                 } else {
                     throw new IllegalArgumentException("Shouldn't happen");
                 }
@@ -86,14 +82,31 @@ public class RegionDataAccessService implements RegionDao {
             );
         });
     }
+
+    private Week convertStringToWeekData(String[] weeksString) {
+         return new Week(
+                Integer.parseInt(weeksString[0]),
+                Integer.parseInt(weeksString[1]),
+                Integer.parseInt(weeksString[2]),
+                Integer.parseInt(weeksString[3]));
+    }
+
     //NEED TO CHECK THAT THIS CODE WORKS (SAME FOR ABOVE)
     @Override
     public Optional<Region> selectRegionByName(String name) {
         final String sql = SELECT_SQL + " AND a.name = '" + name + "' GROUP BY a.name";
         List<Region> regions = jdbcTemplate.query(sql, (resultSet, i) -> {
 
-            System.out.println(resultSet.getArray("affected_region_weeks").toString());
+            String[] weeksArray = (String[]) resultSet.getArray("affected_region_weeks").getArray();
             List<Week> weeks = new ArrayList<>();
+            for(int n = 0; n < weeksArray.length; n++) {
+                String[] weeksString = weeksArray[n].split(",");
+                if(weeksString.length == 4) {
+                    weeks.add(convertStringToWeekData(weeksString));
+                } else {
+                    throw new IllegalArgumentException("Shouldn't happen");
+                }
+            }
 
             return new Region(
                     resultSet.getString("name"),
