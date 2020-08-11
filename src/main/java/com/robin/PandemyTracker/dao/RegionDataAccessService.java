@@ -7,20 +7,21 @@ import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Array;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.*;
 
-@Repository("postgres")
+@Repository("postgresRegion")
 public class RegionDataAccessService implements RegionDao {
 
     private JdbcTemplate jdbcTemplate;
 
     private static final String SELECT_SQL =
             "SELECT a.name, a.total_cases, a.total_deaths, a.total_intense_nursed, " +
-                    "array_agg(array[b.week_number, b.cases, b.deaths, b.intense_nursed]) " +
+                    "array_agg(b.week_number || ',' || b.cases || ',' || b.deaths || ',' || b.intense_nursed) " +
                     "AS affected_region_weeks " +
-                    "FROM pandemy_region a, pandemy_week b" +
+                    "FROM pandemy_region a, pandemy_week b " +
                     "WHERE a.name = b.affected_region";
     private static final String UPDATE_SQL =
             "UPDATE pandemy_region" +
@@ -61,12 +62,28 @@ public class RegionDataAccessService implements RegionDao {
     public List<Region> selectAllRegions() {
         final String sql = SELECT_SQL + " GROUP BY a.name";
         return jdbcTemplate.query(sql, (resultSet, i) -> {
+            String[] weeksArray = (String[]) resultSet.getArray("affected_region_weeks").getArray();
+            List<Week> weeks = new ArrayList<>();
+            for(int n = 0; n < weeksArray.length; n++) {
+                String[] weeksString = weeksArray[n].split(",");
+                if(weeksString.length == 4) {
+                    weeks.add(new Week(
+                            Integer.parseInt(weeksString[0]),
+                            Integer.parseInt(weeksString[1]),
+                            Integer.parseInt(weeksString[2]),
+                            Integer.parseInt(weeksString[3])
+                    ));
+                } else {
+                    throw new IllegalArgumentException("Shouldn't happen");
+                }
+            }
+
             return new Region(
                     resultSet.getString("name"),
                     resultSet.getInt("total_cases"),
                     resultSet.getInt("total_deaths"),
                     resultSet.getInt("total_intense_nursed"),
-                    (Week[]) resultSet.getArray("affected_region_weeks").getArray()
+                    weeks
             );
         });
     }
@@ -75,13 +92,17 @@ public class RegionDataAccessService implements RegionDao {
     public Optional<Region> selectRegionByName(String name) {
         final String sql = SELECT_SQL + " AND a.name = '" + name + "' GROUP BY a.name";
         List<Region> regions = jdbcTemplate.query(sql, (resultSet, i) -> {
-           return new Region(
-                   resultSet.getString("name"),
-                   resultSet.getInt("total_cases"),
-                   resultSet.getInt("total_deaths"),
-                   resultSet.getInt("total_intense_nursed"),
-                   (Week[]) resultSet.getArray("affected_region_weeks").getArray()
-           );
+
+            System.out.println(resultSet.getArray("affected_region_weeks").toString());
+            List<Week> weeks = new ArrayList<>();
+
+            return new Region(
+                    resultSet.getString("name"),
+                    resultSet.getInt("total_cases"),
+                    resultSet.getInt("total_deaths"),
+                    resultSet.getInt("total_intense_nursed"),
+                    weeks
+            );
         });
         return regions.stream().findFirst();
     }

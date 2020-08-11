@@ -15,7 +15,7 @@ public class RegionService {
     private final RegionDao regionDao;
 
     @Autowired
-    public RegionService(@Qualifier("postgres") RegionDao regionDao) {
+    public RegionService(@Qualifier("postgresRegion") RegionDao regionDao) {
         this.regionDao = regionDao;
     }
 
