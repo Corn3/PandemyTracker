@@ -18,7 +18,7 @@ public class Region {
             @JsonProperty("total_deaths") int totalDeaths,
             @JsonProperty("total_intense_nursed") int totalIntenseNursed,
             @JsonProperty("week_data") List<Week> weekData
-    ) {
+            ) {
         this.name = name;
         this.totalCases = totalCases;
         this.totalDeaths = totalDeaths;
@@ -26,16 +26,12 @@ public class Region {
         this.weekData = weekData;
     }
 
-    public void addWeekData(Week week) {
-        weekData.add(week);
-    }
-
     public String getName() {
         return name;
     }
 
-    public Week getDataForWeek(int weekNumber) {
-        return weekData.get(weekNumber);
+    public List<Week> getWeekData() {
+        return weekData;
     }
 
     public int getTotalCases() {
