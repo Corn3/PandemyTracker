@@ -9,9 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Repository("postgres")
 public class RegionDataAccessService implements RegionDao {
@@ -19,14 +17,18 @@ public class RegionDataAccessService implements RegionDao {
     private JdbcTemplate jdbcTemplate;
 
     private static final String SELECT_SQL =
-            "SELECT name, total_cases, total_deaths, total_intense_nursed" +
-            " FROM pandemy_region";
+            "SELECT a.name, a.total_cases, a.total_deaths, a.total_intense_nursed, " +
+                    "array_agg(array[b.week_number, b.cases, b.deaths, b.intense_nursed]) " +
+                    "AS affected_region_weeks " +
+                    "FROM pandemy_region a, pandemy_week b" +
+                    "WHERE a.name = b.affected_region";
     private static final String UPDATE_SQL =
             "UPDATE pandemy_region" +
             " SET total_cases = ?, total_deaths = ?, total_intense_nursed = ?" +
             " WHERE name = ?";
     private static final String INSERT_SQL =
             "INSERT INTO pandemy_region (name, total_cases, total_deaths, total_intense_nursed) VALUES (?, ?, ?, ?)";
+
 
     @Autowired
     public RegionDataAccessService(JdbcTemplate jdbcTemplate) {
@@ -57,26 +59,31 @@ public class RegionDataAccessService implements RegionDao {
 
     @Override
     public List<Region> selectAllRegions() {
-        return jdbcTemplate.query(SELECT_SQL, (resultSet, i) -> {
+        final String sql = SELECT_SQL + " GROUP BY a.name";
+        return jdbcTemplate.query(sql, (resultSet, i) -> {
             return new Region(
                     resultSet.getString("name"),
                     resultSet.getInt("total_cases"),
                     resultSet.getInt("total_deaths"),
                     resultSet.getInt("total_intense_nursed"),
-                    new ArrayList<Week>()
-                    // THIS NEEDS TO CALL METHOD IN A CLASS THAT WORKS WITH WEEK DATA AND FETCH ALL:
-                    // Something in style of weekDataAccessService.selectWeekDataByRegion(resultSet.getString("name"));
-                    // Alternatively write SQL that selects the weeks for a given region, something in style of:
-                    // SELECT affected_region, week_number, cases, deaths, intense_nursed
-                    // FROM pandemy_week
-                    // WHERE pandemy_week.affected_region = pandemy_region.name
+                    (Week[]) resultSet.getArray("affected_region_weeks").getArray()
             );
         });
     }
-
+    //NEED TO CHECK THAT THIS CODE WORKS (SAME FOR ABOVE)
     @Override
     public Optional<Region> selectRegionByName(String name) {
-        return Optional.empty();
+        final String sql = SELECT_SQL + " AND a.name = '" + name + "' GROUP BY a.name";
+        List<Region> regions = jdbcTemplate.query(sql, (resultSet, i) -> {
+           return new Region(
+                   resultSet.getString("name"),
+                   resultSet.getInt("total_cases"),
+                   resultSet.getInt("total_deaths"),
+                   resultSet.getInt("total_intense_nursed"),
+                   (Week[]) resultSet.getArray("affected_region_weeks").getArray()
+           );
+        });
+        return regions.stream().findFirst();
     }
 
     @Override

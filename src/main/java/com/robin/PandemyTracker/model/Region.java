@@ -7,7 +7,7 @@ import java.util.List;
 
 public class Region {
     private String name;
-    private List<Week> weekData;
+    private Week[] weekData;
     private int totalCases;
     private int totalDeaths;
     private int totalIntenseNursed;
@@ -17,7 +17,7 @@ public class Region {
             @JsonProperty("total_cases") int totalCases,
             @JsonProperty("total_deaths") int totalDeaths,
             @JsonProperty("total_intense_nursed") int totalIntenseNursed,
-            @JsonProperty("week_data") List<Week> weekData
+            @JsonProperty("week_data") Week[] weekData
     ) {
         this.name = name;
         this.totalCases = totalCases;
@@ -26,16 +26,12 @@ public class Region {
         this.weekData = weekData;
     }
 
-    public void addWeekData(Week week) {
-        weekData.add(week);
-    }
-
     public String getName() {
         return name;
     }
 
-    public Week getDataForWeek(int weekNumber) {
-        return weekData.get(weekNumber);
+    public Week[] getWeekData() {
+        return weekData;
     }
 
     public int getTotalCases() {
