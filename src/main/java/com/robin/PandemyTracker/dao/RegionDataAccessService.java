@@ -23,7 +23,7 @@ public class RegionDataAccessService implements RegionDao {
             "SELECT a.name, a.total_cases, a.total_deaths, a.total_intense_nursed, " +
                     "array_agg(array[b.week_number, b.cases, b.deaths, b.intense_nursed]) " +
                     "AS affected_region_weeks " +
-                    "FROM pandemy_region a, pandemy_week b" +
+                    "FROM pandemy_region a, pandemy_week b " +
                     "WHERE a.name = b.affected_region";
     private static final String UPDATE_SQL =
             "UPDATE pandemy_region" +
