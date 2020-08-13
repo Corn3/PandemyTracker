@@ -74,7 +74,7 @@ public class RegionDataAccessService implements RegionDao {
             for(int n = 0; n < weeksArray.length; n++) {
                 String[] weeksString = weeksArray[n].split(",");
                 if(weeksString.length == 4) {
-                    weeks.add(convertStringDataToWeek(weeksString));
+                    weeks.add(convertStringToWeekData(weeksString));
                 } else {
                     throw new IllegalArgumentException("Shouldn't happen");
                 }
@@ -90,7 +90,7 @@ public class RegionDataAccessService implements RegionDao {
         });
     }
 
-    private Week convertStringDataToWeek(String[] weeksString) {
+    private Week convertStringToWeekData(String[] weeksString) {
         return new Week(
                 Integer.parseInt(weeksString[0]),
                 Integer.parseInt(weeksString[1]),
@@ -108,7 +108,7 @@ public class RegionDataAccessService implements RegionDao {
             for(int n = 0; n < weeksArray.length; n++) {
                 String[] weeksString = weeksArray[n].split(",");
                 if(weeksString.length == 4) {
-                    weeks.add(convertStringDataToWeek(weeksString));
+                    weeks.add(convertStringToWeekData(weeksString));
                 } else {
                     throw new IllegalArgumentException("Shouldn't happen");
                 }
