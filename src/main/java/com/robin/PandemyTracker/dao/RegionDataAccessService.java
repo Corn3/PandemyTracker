@@ -38,11 +38,15 @@ public class RegionDataAccessService implements RegionDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    //NEED TO FIRST ADD WEEK DATA AND THEN CHECK IF REGION EXISTS, IF NOT ADD REGION, ELSE UPDATE TOTAL FOR GIVEN REGION
+
     @Override
     public int insertRegion(Region region) {
-        //DONT FORGET ARGS FROM REGION AND WEEK DATA
-        return jdbcTemplate.update(INSERT_SQL);
+        return jdbcTemplate.update(INSERT_SQL,
+                region.getName(),
+                region.getTotalCases(),
+                region.getTotalDeaths(),
+                region.getTotalIntenseNursed(),
+                region.getWeekData());
     }
 
     @Override
