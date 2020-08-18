@@ -16,12 +16,20 @@ public class RegionDataAccessService implements RegionDao {
 
     private JdbcTemplate jdbcTemplate;
 
+    private static final String REGION_SELECT_SQL =
+            "SELECT name, total_cases, total_deaths, total_intense_nursed " +
+            "FROM pandemy_region";
+
+    private static final String WEEK_SELECT_SQL =
+            "SELECT week_number, cases, deaths, intense_nursed " +
+            "FROM pandemy_week " +
+            "WHERE affected_region = ";
+
     private static final String SELECT_SQL =
-            "SELECT a.name, a.total_cases, a.total_deaths, a.total_intense_nursed, " +
-                    "array_agg(b.week_number || ',' || b.cases || ',' || b.deaths || ',' || b.intense_nursed) " +
-                    "AS affected_region_weeks " +
-                    "FROM pandemy_region a, pandemy_week b " +
-                    "WHERE a.name = b.affected_region";
+            "SELECT array_agg(week_number || ',' || cases || ',' || deaths || ',' || intense_nursed) " +
+            "AS affected_region_weeks " +
+            "FROM pandemy_week " +
+            "WHERE affected_region = ?";
     private static final String UPDATE_SQL =
             "UPDATE pandemy_region" +
             " SET total_cases = ?, total_deaths = ?, total_intense_nursed = ?" +
@@ -35,11 +43,18 @@ public class RegionDataAccessService implements RegionDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    //NEED TO FIRST ADD WEEK DATA AND THEN CHECK IF REGION EXISTS, IF NOT ADD REGION, ELSE UPDATE TOTAL FOR GIVEN REGION
     @Override
     public int insertRegion(Region region) {
-        //DONT FORGET ARGS FROM REGION AND WEEK DATA
-        return jdbcTemplate.update(INSERT_SQL);
+        batchInsertWeeks(region.getWeekData());
+        return jdbcTemplate.update(INSERT_SQL, region.getName(),
+                region.getTotalCases(), region.getTotalDeaths(),
+                region.getTotalIntenseNursed());
+
+    }
+
+    private int batchInsertWeeks(List<Week> weeks) {
+
+        return 0;
     }
 
     @Override
@@ -58,23 +73,21 @@ public class RegionDataAccessService implements RegionDao {
     }
 
     @Override
-    public List<Region> selectAllRegions() {
-        final String sql = SELECT_SQL + " GROUP BY a.name";
-        return jdbcTemplate.query(sql, (resultSet, i) -> {
-
-            String[] weeksArray = (String[]) resultSet.getArray("affected_region_weeks").getArray();
-            List<Week> weeks = new ArrayList<>();
-            for(int n = 0; n < weeksArray.length; n++) {
-                String[] weeksString = weeksArray[n].split(",");
-                if(weeksString.length == 4) {
-                    weeks.add(convertStringToWeekData(weeksString));
-                } else {
-                    throw new IllegalArgumentException("Shouldn't happen");
-                }
-            }
+    public List<Region> selectAllRegions() {;
+        return jdbcTemplate.query(REGION_SELECT_SQL, (resultSet, i) -> {
+            String affectedRegion = resultSet.getString("name");
+            String sql = WEEK_SELECT_SQL + "'" + affectedRegion + "'";
+            List<Week> weeks = jdbcTemplate.query(sql, (rs, j) -> {
+                return new Week(
+                        rs.getInt("week_number"),
+                        rs.getInt("cases"),
+                        rs.getInt("deaths"),
+                        rs.getInt("intense_nursed")
+                );
+            });
 
             return new Region(
-                    resultSet.getString("name"),
+                    affectedRegion,
                     resultSet.getInt("total_cases"),
                     resultSet.getInt("total_deaths"),
                     resultSet.getInt("total_intense_nursed"),
@@ -83,40 +96,30 @@ public class RegionDataAccessService implements RegionDao {
         });
     }
 
-    private Week convertStringToWeekData(String[] weeksString) {
-         return new Week(
-                Integer.parseInt(weeksString[0]),
-                Integer.parseInt(weeksString[1]),
-                Integer.parseInt(weeksString[2]),
-                Integer.parseInt(weeksString[3]));
-    }
-
-    //NEED TO CHECK THAT THIS CODE WORKS (SAME FOR ABOVE)
     @Override
     public Optional<Region> selectRegionByName(String name) {
-        final String sql = SELECT_SQL + " AND a.name = '" + name + "' GROUP BY a.name";
-        List<Region> regions = jdbcTemplate.query(sql, (resultSet, i) -> {
+        final String region_sql = REGION_SELECT_SQL + " WHERE name = '" + name + "'";
+        return jdbcTemplate.query(region_sql, (resultSet, i) -> {
 
-            String[] weeksArray = (String[]) resultSet.getArray("affected_region_weeks").getArray();
-            List<Week> weeks = new ArrayList<>();
-            for(int n = 0; n < weeksArray.length; n++) {
-                String[] weeksString = weeksArray[n].split(",");
-                if(weeksString.length == 4) {
-                    weeks.add(convertStringToWeekData(weeksString));
-                } else {
-                    throw new IllegalArgumentException("Shouldn't happen");
-                }
-            }
+            String affectedRegion = resultSet.getString("name");
+            String sql = WEEK_SELECT_SQL + "'" + affectedRegion + "'";
+            List<Week> weeks = jdbcTemplate.query(sql, (rs, j) -> {
+                return new Week(
+                        rs.getInt("week_number"),
+                        rs.getInt("cases"),
+                        rs.getInt("deaths"),
+                        rs.getInt("intense_nursed")
+                );
+            });
 
             return new Region(
-                    resultSet.getString("name"),
+                    affectedRegion,
                     resultSet.getInt("total_cases"),
                     resultSet.getInt("total_deaths"),
                     resultSet.getInt("total_intense_nursed"),
                     weeks
             );
-        });
-        return regions.stream().findFirst();
+        }).stream().findFirst();
     }
 
     @Override
