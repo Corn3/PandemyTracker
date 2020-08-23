@@ -11,7 +11,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.*;
 
-@Repository("postgres")
+@Repository("postgresRegion")
 public class RegionDataAccessService implements RegionDao {
 
     private JdbcTemplate jdbcTemplate;
