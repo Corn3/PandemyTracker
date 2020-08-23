@@ -25,6 +25,10 @@ public class RegionDataAccessService implements RegionDao {
             "FROM pandemy_week " +
             "WHERE affected_region = ";
 
+    private static final String WEEK_INSERT_SQL =
+            "INSERT INTO pandemy_week (affected_region, week_number, cases, deaths, intense_nursed) " +
+            "VALUES (?, ?, ?, ?, ?)";
+
     private static final String SELECT_SQL =
             "SELECT array_agg(week_number || ',' || cases || ',' || deaths || ',' || intense_nursed) " +
             "AS affected_region_weeks " +
@@ -44,16 +48,30 @@ public class RegionDataAccessService implements RegionDao {
 
     @Override
     public int insertRegion(Region region) {
-        batchInsertWeeks(region.getWeekData());
+        batchInsertWeeks(region.getWeekData(), region.getName());
         return jdbcTemplate.update(INSERT_SQL, region.getName(),
                 region.getTotalCases(), region.getTotalDeaths(),
                 region.getTotalIntenseNursed());
 
     }
 
-    private int batchInsertWeeks(List<Week> weeks) {
+    private int[] batchInsertWeeks(List<Week> weeks, String regionName) {
 
-        return 0;
+        return jdbcTemplate.batchUpdate(WEEK_INSERT_SQL, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                ps.setString(1, regionName);
+                ps.setInt(2, weeks.get(i).getWeekNumber());
+                ps.setInt(3, weeks.get(i).getCases());
+                ps.setInt(4, weeks.get(i).getDeaths());
+                ps.setInt(5, weeks.get(i).getIntenseNursed());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return weeks.size();
+            }
+        });
     }
 
     @Override
@@ -61,7 +79,11 @@ public class RegionDataAccessService implements RegionDao {
         return jdbcTemplate.batchUpdate(INSERT_SQL, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps, int i) throws SQLException {
-
+                ps.setString(1, regions.get(i).getName());
+                ps.setInt(2, regions.get(i).getTotalCases());
+                ps.setInt(3, regions.get(i).getTotalDeaths());
+                ps.setInt(4, regions.get(i).getTotalIntenseNursed());
+                batchInsertWeeks(regions.get(i).getWeekData(), regions.get(i).getName());
             }
 
             @Override
