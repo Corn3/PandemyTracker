@@ -18,7 +18,7 @@ public class Region {
             @JsonProperty("total_deaths") int totalDeaths,
             @JsonProperty("total_intense_nursed") int totalIntenseNursed,
             @JsonProperty("week_data") List<Week> weekData
-    ) {
+            ) {
         this.name = name;
         this.totalCases = totalCases;
         this.totalDeaths = totalDeaths;

@@ -11,7 +11,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.*;
 
-@Repository("postgresRegion")
+@Repository("postgres")
 public class RegionDataAccessService implements RegionDao {
 
     private JdbcTemplate jdbcTemplate;
@@ -36,7 +36,6 @@ public class RegionDataAccessService implements RegionDao {
             " WHERE name = ?";
     private static final String INSERT_SQL =
             "INSERT INTO pandemy_region (name, total_cases, total_deaths, total_intense_nursed) VALUES (?, ?, ?, ?)";
-
 
     @Autowired
     public RegionDataAccessService(JdbcTemplate jdbcTemplate) {
