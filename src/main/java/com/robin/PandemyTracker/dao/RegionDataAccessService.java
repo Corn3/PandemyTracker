@@ -30,11 +30,11 @@ public class RegionDataAccessService implements RegionDao {
             "INSERT INTO pandemy_week (affected_region, week_number, cases, deaths, intense_nursed) " +
                     "VALUES (?, ?, ?, ?, ?)";
 
-    private static final String SELECT_SQL =
-            "SELECT array_agg(week_number || ',' || cases || ',' || deaths || ',' || intense_nursed) " +
-                    "AS affected_region_weeks " +
-                    "FROM pandemy_week " +
-                    "WHERE affected_region = ?";
+    private static final String WEEK_UPDATE_SQL =
+            "UPDATE pandemy_week" +
+                    " SET cases = ?, deaths = ?, intense_nursed = ?" +
+                    " WHERE affected_region = ? AND week_number = ?";
+
     private static final String UPDATE_SQL =
             "UPDATE pandemy_region" +
                     " SET total_cases = ?, total_deaths = ?, total_intense_nursed = ?" +
@@ -66,6 +66,35 @@ public class RegionDataAccessService implements RegionDao {
                 ps.setInt(3, weeks.get(i).getCases());
                 ps.setInt(4, weeks.get(i).getDeaths());
                 ps.setInt(5, weeks.get(i).getIntenseNursed());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return weeks.size();
+            }
+        });
+    }
+
+    private int insertWeek(Week week, String affectedRegion) {
+        return jdbcTemplate.update(WEEK_INSERT_SQL, affectedRegion,
+                week.getWeekNumber(), week.getCases(), week.getDeaths(),
+                week.getIntenseNursed());
+    }
+
+    private int[] batchUpdateWeeks(List<Week> weeks, String regionName) {
+        return jdbcTemplate.batchUpdate(WEEK_UPDATE_SQL, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                Optional<Week> oldWeek = selectAffectedRegionWeekByNumber(regionName, weeks.get(i).getWeekNumber());
+                if(oldWeek.isEmpty()) {
+                    insertWeek(weeks.get(i), regionName);
+                } else {
+                    ps.setInt(1, weeks.get(i).getCases());
+                    ps.setInt(2, weeks.get(i).getDeaths());
+                    ps.setInt(3, weeks.get(i).getIntenseNursed());
+                    ps.setString(4, regionName);
+                    ps.setInt(5, weeks.get(i).getWeekNumber());
+                }
             }
 
             @Override
@@ -118,6 +147,18 @@ public class RegionDataAccessService implements RegionDao {
         });
     }
 
+    private Optional<Week> selectAffectedRegionWeekByNumber(String affectedRegion, int weekNumber) {
+        String sql = WEEK_SELECT_SQL + "'" + affectedRegion + "' AND week_number = '" + weekNumber + "'";
+        return jdbcTemplate.query(sql, (resultSet, i) -> {
+            return new Week(
+                    resultSet.getInt("week_number"),
+                    resultSet.getInt("cases"),
+                    resultSet.getInt("deaths"),
+                    resultSet.getInt("intense_nursed")
+            );
+        }).stream().findFirst();
+    }
+
     @Override
     public Optional<Region> selectRegionByName(String name) {
         final String region_sql = REGION_SELECT_SQL + " WHERE name = '" + name + "'";
@@ -156,7 +197,7 @@ public class RegionDataAccessService implements RegionDao {
                                 regionUpdate.getTotalDeaths(),
                                 regionUpdate.getTotalIntenseNursed(),
                                 region.getName());
-                        //UPDATE WEEK DATA HERE "jdbcTemplate.update(WEEK_UPDATE_SQL,);
+                        batchUpdateWeeks(regionUpdate.getWeekData(), region.getName());
                         return 1;
                     }
                 })
@@ -177,7 +218,7 @@ public class RegionDataAccessService implements RegionDao {
                     ps.setInt(2, regions.get(i).getTotalDeaths());
                     ps.setInt(3, regions.get(i).getTotalIntenseNursed());
                     ps.setString(4, oldRegionInfo.getName());
-                    //Need to update week data here (like for updateRegionByName).
+                    batchUpdateWeeks(regions.get(i).getWeekData(), oldRegionInfo.getName());
                 }
             }
 
