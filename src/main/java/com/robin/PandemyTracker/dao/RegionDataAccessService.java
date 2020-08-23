@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import javax.swing.text.html.Option;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.*;
@@ -94,7 +95,7 @@ public class RegionDataAccessService implements RegionDao {
     }
 
     @Override
-    public List<Region> selectAllRegions() {;
+    public List<Region> selectAllRegions() {
         return jdbcTemplate.query(REGION_SELECT_SQL, (resultSet, i) -> {
             String affectedRegion = resultSet.getString("name");
             String sql = WEEK_SELECT_SQL + "'" + affectedRegion + "'";
@@ -166,8 +167,18 @@ public class RegionDataAccessService implements RegionDao {
     public int[] batchUpdateRegion(List<Region> regions) {
         return jdbcTemplate.batchUpdate(UPDATE_SQL, new BatchPreparedStatementSetter() {
             @Override
-            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                Optional<Region> oldRegion = selectRegionByName(regions.get(i).getName());
+                if(oldRegion.isEmpty()) {
+                    insertRegion(regions.get(i));
+                } else {
+                    Region oldRegionInfo = oldRegion.get();
+                    ps.setInt(1, regions.get(i).getTotalCases());
+                    ps.setInt(2, regions.get(i).getTotalDeaths());
+                    ps.setInt(3, regions.get(i).getTotalIntenseNursed());
+                    ps.setString(4, oldRegionInfo.getName());
+                    //Need to update week data here (like for updateRegionByName).
+                }
             }
 
             @Override
