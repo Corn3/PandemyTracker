@@ -145,8 +145,21 @@ public class RegionDataAccessService implements RegionDao {
 
 
     @Override
-    public int updateRegionByName(String name, Region region) {
-        return 0;
+    public int updateRegionByName(String name, Region regionUpdate) {
+        return selectRegionByName(name)
+                .map(region -> {
+                    if(region == null) {
+                        return 0;
+                    } else {
+                        jdbcTemplate.update(UPDATE_SQL, regionUpdate.getTotalCases(),
+                                regionUpdate.getTotalDeaths(),
+                                regionUpdate.getTotalIntenseNursed(),
+                                region.getName());
+                        //UPDATE WEEK DATA HERE "jdbcTemplate.update(WEEK_UPDATE_SQL,);
+                        return 1;
+                    }
+                })
+                .orElse(0);
     }
 
     @Override
