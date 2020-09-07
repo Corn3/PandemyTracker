@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 @Service
@@ -65,8 +66,18 @@ public class DayServiceClient {
         int firstDeathsRound = 0, firstIntenseNursedRound = 0;
 
         //Could do with a while loop/ for loop that goes through all sheets 1 by 1, would however decrease the speed.
+        boolean foundDateInDataSheet = checkIfDateExistsInSheet(casesSheet);
         for (int i = 1; i <= casesSheet.getLastRowNum(); i++) {
             LocalDate date = getDateFromCell(i, 0, casesSheet);
+            if(foundDateInDataSheet == true) {
+
+            }
+            else {
+                //Need to change this so it always reads from file, but checks if both the file (/dates/first_date_case)
+                // and the sheet starts with the same date or if the sheet even has a date.
+                // In the case that they dont start with the same date, update the date in the file to the date in the sheet
+                // and then read from the file again.
+            }
             int cases = getDataFromCell(i, 1, casesSheet);
             int deaths = 0, intenseNursed = 0;
 
@@ -93,13 +104,22 @@ public class DayServiceClient {
         return (int) sheet.getRow(row).getCell(col).getNumericCellValue();
     }
 
-    private LocalDate getDateFromCell(int row, int col, Sheet sheet) {
+    private LocalDate getDateFromCell(int row, int col, Sheet sheet) throws DateTimeParseException {
         return sheet.getRow(row)
                 .getCell(col)
                 .getDateCellValue()
                 .toInstant()
                 .atZone(ZoneId.systemDefault())
                 .toLocalDate();
+    }
+
+    private boolean checkIfDateExistsInSheet(Sheet sheet) {
+        try {
+            getDateFromCell(1, 0, sheet);
+            return true;
+        } catch(DateTimeParseException dtpe) {
+            return false;
+        }
     }
 
 
