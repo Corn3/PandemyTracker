@@ -1,8 +1,8 @@
 app:
   datasource:
-    jdbc-url: jdbc:postgresql://localhost:5432/covid_db
-    username: postgres
-    password: Panthera93b
+    jdbc-url: 
+    username: 
+    password: 
     pool-size: 30
 
 server:
