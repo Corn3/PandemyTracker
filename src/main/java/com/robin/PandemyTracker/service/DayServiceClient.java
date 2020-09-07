@@ -13,11 +13,10 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
@@ -26,6 +25,7 @@ import java.util.*;
 @Service
 public class DayServiceClient {
     private static final String DATA_URL_PATH = "https://www.arcgis.com/sharing/rest/content/items/b5e7488e117749c19881cce45db13f7e/data";
+    private static final String DATE_FILE_PATH = "src/main/resources/dates/first_date_case";
     private String path;
 
     public DayServiceClient(ApplicationArguments args) throws Exception {
@@ -66,18 +66,8 @@ public class DayServiceClient {
         int firstDeathsRound = 0, firstIntenseNursedRound = 0;
 
         //Could do with a while loop/ for loop that goes through all sheets 1 by 1, would however decrease the speed.
-        boolean foundDateInDataSheet = checkIfDateExistsInSheet(casesSheet);
-        for (int i = 1; i <= casesSheet.getLastRowNum(); i++) {
-            LocalDate date = getDateFromCell(i, 0, casesSheet);
-            if(foundDateInDataSheet == true) {
-
-            }
-            else {
-                //Need to change this so it always reads from file, but checks if both the file (/dates/first_date_case)
-                // and the sheet starts with the same date or if the sheet even has a date.
-                // In the case that they dont start with the same date, update the date in the file to the date in the sheet
-                // and then read from the file again.
-            }
+        int i = 1;
+        for (LocalDate date = getDateFromFile(casesSheet); !date.isEqual(LocalDate.now()); date = date.plusDays(1)) {
             int cases = getDataFromCell(i, 1, casesSheet);
             int deaths = 0, intenseNursed = 0;
 
@@ -96,6 +86,7 @@ public class DayServiceClient {
             Day day = new Day(date, cases, deaths, intenseNursed, 0, 0, 0);
             days.add(day);
             casesSheetLastRowNum--;
+            i++;
         }
         return days;
     }
@@ -113,12 +104,20 @@ public class DayServiceClient {
                 .toLocalDate();
     }
 
-    private boolean checkIfDateExistsInSheet(Sheet sheet) {
+    private LocalDate getDateFromFile(Sheet sheet) throws IOException {
+        LocalDate date = LocalDate.parse(Files.readString(Paths.get(DATE_FILE_PATH)));
         try {
-            getDateFromCell(1, 0, sheet);
-            return true;
+            LocalDate d = getDateFromCell(1, 0, sheet);
+
+            if(d.compareTo(date) != 0) {
+                try(PrintWriter writer = new PrintWriter(DATE_FILE_PATH)) {
+                    writer.write(d.toString());
+                    date = d;
+                }
+            }
+            return date;
         } catch(DateTimeParseException dtpe) {
-            return false;
+            return date;
         }
     }
 
