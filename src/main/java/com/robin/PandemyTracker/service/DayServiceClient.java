@@ -67,26 +67,30 @@ public class DayServiceClient {
 
         //Could do with a while loop/ for loop that goes through all sheets 1 by 1, would however decrease the speed.
         int i = 1;
-        for (LocalDate date = getDateFromFile(casesSheet); !date.isEqual(LocalDate.now()); date = date.plusDays(1)) {
-            int cases = getDataFromCell(i, 1, casesSheet);
-            int deaths = 0, intenseNursed = 0;
+        try {
+            for (LocalDate date = getDateFromFile(casesSheet); !date.isEqual(LocalDate.now()); date = date.plusDays(1)) {
+                int cases = getDataFromCell(i, 1, casesSheet);
+                int deaths = 0, intenseNursed = 0;
 
-            if(casesSheetLastRowNum > deathsSheetLastRowNum) {
-                firstDeathsRound++;
-            } else {
-                deaths = getDataFromCell(i - firstDeathsRound, 1, deathsSheet);
+                if (casesSheetLastRowNum > deathsSheetLastRowNum) {
+                    firstDeathsRound++;
+                } else {
+                    deaths = getDataFromCell(i - firstDeathsRound, 1, deathsSheet);
+                }
+
+                if (casesSheetLastRowNum > intenseNursedSheetLastRowNum) {
+                    firstIntenseNursedRound++;
+                } else {
+                    intenseNursed = getDataFromCell(i - firstIntenseNursedRound, 1, intenseNursedSheet);
+                }
+
+                Day day = new Day(date, cases, deaths, intenseNursed, 0, 0, 0);
+                days.add(day);
+                casesSheetLastRowNum--;
+                i++;
             }
-
-            if (casesSheetLastRowNum > intenseNursedSheetLastRowNum) {
-                firstIntenseNursedRound++;
-            } else {
-                intenseNursed = getDataFromCell(i - firstIntenseNursedRound, 1, intenseNursedSheet);
-            }
-
-            Day day = new Day(date, cases, deaths, intenseNursed, 0, 0, 0);
-            days.add(day);
-            casesSheetLastRowNum--;
-            i++;
+        } catch (NullPointerException e) {
+            return days;
         }
         return days;
     }
@@ -109,14 +113,14 @@ public class DayServiceClient {
         try {
             LocalDate d = getDateFromCell(1, 0, sheet);
 
-            if(d.compareTo(date) != 0) {
-                try(PrintWriter writer = new PrintWriter(DATE_FILE_PATH)) {
+            if (d.compareTo(date) != 0) {
+                try (PrintWriter writer = new PrintWriter(DATE_FILE_PATH)) {
                     writer.write(d.toString());
                     date = d;
                 }
             }
             return date;
-        } catch(DateTimeParseException dtpe) {
+        } catch (DateTimeParseException dtpe) {
             return date;
         }
     }

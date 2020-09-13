@@ -4,6 +4,9 @@ import com.robin.PandemyTracker.model.Day;
 import com.robin.PandemyTracker.service.DayService;
 import com.robin.PandemyTracker.service.DayServiceClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.lang.NonNull;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -24,22 +27,26 @@ public class DayController {
         this.dayService = dayService;
     }
 
+    @CachePut(value = "dates", key="#root.args[0]")
     @PostMapping
     public void addDay(@RequestBody Day day) {
         dayService.addDay(day);
     }
 
+    @CachePut(value = "dates")
     @PostMapping(value = "/days")
     public void addAllDays() {
         List<Day> days = dayServiceClient.getAllDays();
         dayService.addAllDays(days);
     }
 
+    @Cacheable(value = "dates")
     @GetMapping
     public List<Day> getAllDays() {
         return dayService.getAllDays();
     }
 
+    @Cacheable(value = "dates", key="#root.args[0]")
     @GetMapping(path = "{date}")
     public Day getDayByDate(@PathVariable("date") LocalDate date) {
         Day day = dayService.getDayByDate(date)
@@ -47,12 +54,14 @@ public class DayController {
         return day;
     }
 
+    @CachePut(value = "dates", key ="#root.args[0]")
     @PutMapping(path = "{date}")
     public void updateDay(@PathVariable("date") LocalDate date,
                          @NonNull @RequestBody Day day) {
         dayService.updateDay(date, day);
     }
 
+    @CacheEvict(value = "dates", allEntries = true)
     @PutMapping
     public void updateAllDays() {
         List<Day> days = dayServiceClient.getAllDays();
