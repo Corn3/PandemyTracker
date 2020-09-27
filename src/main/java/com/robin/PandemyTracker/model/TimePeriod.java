@@ -1,6 +1,8 @@
 package com.robin.PandemyTracker.model;
 
-public abstract class TimePeriod {
+import java.io.Serializable;
+
+public abstract class TimePeriod implements Serializable {
     private int cases;
     private int deaths;
     private int intenseNursed;

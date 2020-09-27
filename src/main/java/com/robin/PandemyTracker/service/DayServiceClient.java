@@ -40,6 +40,7 @@ public class DayServiceClient {
 
     }
 
+    @Cacheable(value = "day_downloads", key="'Downloads'")
     public List<Day> getAllDays() {
         List<Day> days = new ArrayList<>();
         try (BufferedInputStream inputStream = new BufferedInputStream(new URL(path).openStream())) {
