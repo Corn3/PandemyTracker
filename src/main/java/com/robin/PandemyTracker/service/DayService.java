@@ -27,7 +27,6 @@ public class DayService {
 
     public int[] addAllDays(List<Day> days) { return dayDao.batchInsertDay(days); }
 
-    //@Cacheable("days")
     public int[] updateAllDays(List<Day> days) {
         return dayDao.batchUpdateDay(days);
     }

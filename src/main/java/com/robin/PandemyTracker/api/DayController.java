@@ -27,26 +27,26 @@ public class DayController {
         this.dayService = dayService;
     }
 
-    //@CachePut(value = "dates", key="#root.args[0]")
+    @CachePut(value = "dates", key="'DatesInCache'+#day.getDate()")
     @PostMapping
     public void addDay(@RequestBody Day day) {
         dayService.addDay(day);
     }
 
-    //@CachePut(value = "dates")
+    @CachePut(value = "dates")
     @PostMapping(value = "/days")
     public void addAllDays() {
         List<Day> days = dayServiceClient.getAllDays();
         dayService.addAllDays(days);
     }
 
-    //@Cacheable(value = "dates")
+    @Cacheable(value = "dates")
     @GetMapping
     public List<Day> getAllDays() {
         return dayService.getAllDays();
     }
 
-    //@Cacheable(value = "dates", key="#root.args[0]")
+    @Cacheable(value = "dates", key = "'DatesInCache'+#date")
     @GetMapping(path = "{date}")
     public Day getDayByDate(@PathVariable("date") LocalDate date) {
         Day day = dayService.getDayByDate(date)
@@ -54,14 +54,14 @@ public class DayController {
         return day;
     }
 
-    //@CachePut(value = "dates", key ="#root.args[0]")
+    @CachePut(value = "dates", key = "'DatesInCache'+#date")
     @PutMapping(path = "{date}")
     public void updateDay(@PathVariable("date") LocalDate date,
                          @NonNull @RequestBody Day day) {
         dayService.updateDay(date, day);
     }
 
-    //@CacheEvict(value = "dates", allEntries = true)
+    @CacheEvict(value = "dates", allEntries = true)
     @PutMapping
     public void updateAllDays() {
         List<Day> days = dayServiceClient.getAllDays();

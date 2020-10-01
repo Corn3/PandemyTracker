@@ -37,7 +37,7 @@ public class DayDataAccessService implements DayDao {
     @Override
     public int insertDay(Day day) {
         return jdbcTemplate.update(INSERT_SQL, day.getDate(), day.getCases(), day.getDeaths(), day.getIntenseNursed(),
-                0, 0, 0);
+                day.getNewCases(), day.getNewDeaths(), day.getNewIntenseNursed());
     }
 
     // Only runs to populate the database first time.
@@ -118,6 +118,7 @@ public class DayDataAccessService implements DayDao {
             public void setValues(PreparedStatement ps, int i) throws SQLException {
                 Optional<Day> oldDay = selectDayByDate(days.get(i).getDate());
                 if(oldDay.isEmpty()) {
+                    System.out.println("NO PREVIOUS DATA FOUND, IS CORRECT IF DATE ISNT IN DB, " + days.get(i).getDate());
                     insertDay(new Day(
                             days.get(i).getDate(), days.get(i).getCases(),
                             days.get(i).getDeaths(), days.get(i).getIntenseNursed(),
