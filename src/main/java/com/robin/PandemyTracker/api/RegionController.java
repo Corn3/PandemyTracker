@@ -1,6 +1,7 @@
 package com.robin.PandemyTracker.api;
 
 import com.robin.PandemyTracker.model.Region;
+import com.robin.PandemyTracker.service.RegionDataManager;
 import com.robin.PandemyTracker.service.RegionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
@@ -12,11 +13,13 @@ import java.util.List;
 @RestController
 public class RegionController {
 
-    private RegionService regionService;
+    private final RegionService regionService;
+    private final RegionDataManager regionDataManager;
 
     @Autowired
-    public RegionController(RegionService regionService) {
+    public RegionController(RegionService regionService, RegionDataManager regionDataManager) {
         this.regionService = regionService;
+        this.regionDataManager = regionDataManager;
     }
 
     @PostMapping
@@ -25,8 +28,8 @@ public class RegionController {
     }
 
     @PostMapping(value = "/regions")
-    public int[] addAllRegions(@RequestBody List<Region> regions) {
-        // List<Region> regions = regionServiceClient.getAllRegions();
+    public int[] addAllRegions() {
+        List<Region> regions = regionDataManager.getAllRegions();
         return regionService.addAllRegions(regions);
     }
 
@@ -48,8 +51,8 @@ public class RegionController {
     }
 
     @PutMapping
-    public void updateAllRegions(@RequestBody List<Region> regions) {
-        // List<Region> regions = regionServiceClient.getAllRegions();
+    public void updateAllRegions() {
+        List<Region> regions = regionDataManager.getAllRegions();
         regionService.updateAllRegions(regions);
     }
 }

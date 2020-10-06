@@ -1,8 +1,8 @@
 package com.robin.PandemyTracker.api;
 
 import com.robin.PandemyTracker.model.Day;
+import com.robin.PandemyTracker.service.DayDataManager;
 import com.robin.PandemyTracker.service.DayService;
-import com.robin.PandemyTracker.service.DayServiceClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -19,11 +19,11 @@ import java.util.List;
 public class DayController {
 
     private final DayService dayService;
-    private final DayServiceClient dayServiceClient;
+    private final DayDataManager dayDataManager;
 
     @Autowired
-    public DayController(DayService dayService, DayServiceClient dayServiceClient) {
-        this.dayServiceClient = dayServiceClient;
+    public DayController(DayService dayService, DayDataManager dayDataManager) {
+        this.dayDataManager = dayDataManager;
         this.dayService = dayService;
     }
 
@@ -36,7 +36,7 @@ public class DayController {
     @CachePut(value = "dates")
     @PostMapping(value = "/days")
     public void addAllDays() {
-        List<Day> days = dayServiceClient.getAllDays();
+        List<Day> days = dayDataManager.getAllDays();
         dayService.addAllDays(days);
     }
 
@@ -64,7 +64,7 @@ public class DayController {
     @CacheEvict(value = "dates", allEntries = true)
     @PutMapping
     public void updateAllDays() {
-        List<Day> days = dayServiceClient.getAllDays();
+        List<Day> days = dayDataManager.getAllDays();
         dayService.updateAllDays(days);
     }
 

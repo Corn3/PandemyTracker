@@ -118,7 +118,6 @@ public class DayDataAccessService implements DayDao {
             public void setValues(PreparedStatement ps, int i) throws SQLException {
                 Optional<Day> oldDay = selectDayByDate(days.get(i).getDate());
                 if(oldDay.isEmpty()) {
-                    System.out.println("NO PREVIOUS DATA FOUND, IS CORRECT IF DATE ISNT IN DB, " + days.get(i).getDate());
                     insertDay(new Day(
                             days.get(i).getDate(), days.get(i).getCases(),
                             days.get(i).getDeaths(), days.get(i).getIntenseNursed(),

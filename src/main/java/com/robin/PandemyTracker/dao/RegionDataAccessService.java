@@ -18,29 +18,35 @@ public class RegionDataAccessService implements RegionDao {
     private JdbcTemplate jdbcTemplate;
 
     private static final String REGION_SELECT_SQL =
-            "SELECT name, total_cases, total_deaths, total_intense_nursed " +
+            "SELECT name, total_cases, cases_per_hundredthousand, total_deaths, total_intense_nursed " +
                     "FROM pandemy_region";
 
     private static final String WEEK_SELECT_SQL =
-            "SELECT week_number, cases, deaths, intense_nursed " +
+            "SELECT week_number, cases, cumulative_cases, deaths, cumulative_deaths, intense_nursed," +
+                    " cumulative_intense_nursed, cases_per_hundredthousand, cumulative_cases_per_hundredthousand " +
                     "FROM pandemy_week " +
                     "WHERE affected_region = ";
 
     private static final String WEEK_INSERT_SQL =
-            "INSERT INTO pandemy_week (affected_region, week_number, cases, deaths, intense_nursed) " +
-                    "VALUES (?, ?, ?, ?, ?)";
+            "INSERT INTO pandemy_week (affected_region, week_number, cases, cumulative_cases," +
+                    " deaths, cumulative_deaths, intense_nursed, cumulative_intense_nursed," +
+                    " cases_per_hundredthousand, cumulative_cases_per_hundredthousand) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     private static final String WEEK_UPDATE_SQL =
             "UPDATE pandemy_week" +
-                    " SET cases = ?, deaths = ?, intense_nursed = ?" +
+                    " SET cases = ?, cumulative_cases = ?, deaths = ?, cumulative_deaths = ?," +
+                    " intense_nursed = ?, cumulative_intense_nursed = ?, cases_per_hundredthousand = ?," +
+                    " cumulative_cases_per_hundredthousand = ?" +
                     " WHERE affected_region = ? AND week_number = ?";
 
     private static final String UPDATE_SQL =
             "UPDATE pandemy_region" +
-                    " SET total_cases = ?, total_deaths = ?, total_intense_nursed = ?" +
+                    " SET total_cases = ?, total_deaths = ?, total_intense_nursed = ?, cases_per_hundredthousand = ?" +
                     " WHERE name = ?";
     private static final String INSERT_SQL =
-            "INSERT INTO pandemy_region (name, total_cases, total_deaths, total_intense_nursed) VALUES (?, ?, ?, ?)";
+            "INSERT INTO pandemy_region (name, total_cases, total_deaths, total_intense_nursed, cases_per_hundredthousand)" +
+                    " VALUES (?, ?, ?, ?, ?)";
 
     @Autowired
     public RegionDataAccessService(JdbcTemplate jdbcTemplate) {
@@ -52,7 +58,7 @@ public class RegionDataAccessService implements RegionDao {
         batchInsertWeeks(region.getWeekData(), region.getName());
         return jdbcTemplate.update(INSERT_SQL, region.getName(),
                 region.getTotalCases(), region.getTotalDeaths(),
-                region.getTotalIntenseNursed());
+                region.getTotalIntenseNursed(), region.getCasesPerHundredThousand());
 
     }
 
@@ -64,8 +70,13 @@ public class RegionDataAccessService implements RegionDao {
                 ps.setString(1, regionName);
                 ps.setInt(2, weeks.get(i).getWeekNumber());
                 ps.setInt(3, weeks.get(i).getCases());
-                ps.setInt(4, weeks.get(i).getDeaths());
-                ps.setInt(5, weeks.get(i).getIntenseNursed());
+                ps.setInt(4, weeks.get(i).getCumulativeCases());
+                ps.setInt(5, weeks.get(i).getDeaths());
+                ps.setInt(6, weeks.get(i).getCumulativeDeaths());
+                ps.setInt(7, weeks.get(i).getIntenseNursed());
+                ps.setInt(8, weeks.get(i).getCumulativeIntenseNursed());
+                ps.setInt(9, weeks.get(i).getCasesPerHundredThousand());
+                ps.setInt(10, weeks.get(i).getCumulativeCasesPerHundredThousand());
             }
 
             @Override
@@ -77,8 +88,9 @@ public class RegionDataAccessService implements RegionDao {
 
     private int insertWeek(Week week, String affectedRegion) {
         return jdbcTemplate.update(WEEK_INSERT_SQL, affectedRegion,
-                week.getWeekNumber(), week.getCases(), week.getDeaths(),
-                week.getIntenseNursed());
+                week.getWeekNumber(), week.getCases(), week.getCumulativeCases(), week.getDeaths(),
+                week.getCumulativeDeaths(), week.getIntenseNursed(), week.getCumulativeIntenseNursed(),
+                week.getCasesPerHundredThousand(), week.getCumulativeCasesPerHundredThousand());
     }
 
     private int[] batchUpdateWeeks(List<Week> weeks, String regionName) {
@@ -90,10 +102,15 @@ public class RegionDataAccessService implements RegionDao {
                     insertWeek(weeks.get(i), regionName);
                 } else {
                     ps.setInt(1, weeks.get(i).getCases());
-                    ps.setInt(2, weeks.get(i).getDeaths());
-                    ps.setInt(3, weeks.get(i).getIntenseNursed());
-                    ps.setString(4, regionName);
-                    ps.setInt(5, weeks.get(i).getWeekNumber());
+                    ps.setInt(2, weeks.get(i).getCumulativeCases());
+                    ps.setInt(3, weeks.get(i).getDeaths());
+                    ps.setInt(4, weeks.get(i).getCumulativeDeaths());
+                    ps.setInt(5, weeks.get(i).getIntenseNursed());
+                    ps.setInt(6, weeks.get(i).getCumulativeIntenseNursed());
+                    ps.setInt(7, weeks.get(i).getCasesPerHundredThousand());
+                    ps.setInt(8, weeks.get(i).getCumulativeCasesPerHundredThousand());
+                    ps.setString(9, regionName);
+                    ps.setInt(10, weeks.get(i).getWeekNumber());
                 }
             }
 
@@ -113,6 +130,7 @@ public class RegionDataAccessService implements RegionDao {
                 ps.setInt(2, regions.get(i).getTotalCases());
                 ps.setInt(3, regions.get(i).getTotalDeaths());
                 ps.setInt(4, regions.get(i).getTotalIntenseNursed());
+                ps.setInt(5, regions.get(i).getCasesPerHundredThousand());
                 batchInsertWeeks(regions.get(i).getWeekData(), regions.get(i).getName());
             }
 
@@ -132,14 +150,20 @@ public class RegionDataAccessService implements RegionDao {
                 return new Week(
                         rs.getInt("week_number"),
                         rs.getInt("cases"),
+                        rs.getInt("cumulative_cases"),
                         rs.getInt("deaths"),
-                        rs.getInt("intense_nursed")
+                        rs.getInt("cumulative_deaths"),
+                        rs.getInt("intense_nursed"),
+                        rs.getInt("cumulative_intense_nursed"),
+                        rs.getInt("cases_per_hundredthousand"),
+                        rs.getInt("cumulative_cases_per_hundredthousand")
                 );
             });
 
             return new Region(
                     affectedRegion,
                     resultSet.getInt("total_cases"),
+                    resultSet.getInt("cases_per_hundredthousand"),
                     resultSet.getInt("total_deaths"),
                     resultSet.getInt("total_intense_nursed"),
                     weeks
@@ -149,12 +173,17 @@ public class RegionDataAccessService implements RegionDao {
 
     private Optional<Week> selectAffectedRegionWeekByNumber(String affectedRegion, int weekNumber) {
         String sql = WEEK_SELECT_SQL + "'" + affectedRegion + "' AND week_number = '" + weekNumber + "'";
-        return jdbcTemplate.query(sql, (resultSet, i) -> {
+        return jdbcTemplate.query(sql, (rs, i) -> {
             return new Week(
-                    resultSet.getInt("week_number"),
-                    resultSet.getInt("cases"),
-                    resultSet.getInt("deaths"),
-                    resultSet.getInt("intense_nursed")
+                    rs.getInt("week_number"),
+                    rs.getInt("cases"),
+                    rs.getInt("cumulative_cases"),
+                    rs.getInt("deaths"),
+                    rs.getInt("cumulative_deaths"),
+                    rs.getInt("intense_nursed"),
+                    rs.getInt("cumulative_intense_nursed"),
+                    rs.getInt("cases_per_hundredthousand"),
+                    rs.getInt("cumulative_cases_per_hundredthousand")
             );
         }).stream().findFirst();
     }
@@ -170,14 +199,20 @@ public class RegionDataAccessService implements RegionDao {
                 return new Week(
                         rs.getInt("week_number"),
                         rs.getInt("cases"),
+                        rs.getInt("cumulative_cases"),
                         rs.getInt("deaths"),
-                        rs.getInt("intense_nursed")
+                        rs.getInt("cumulative_deaths"),
+                        rs.getInt("intense_nursed"),
+                        rs.getInt("cumulative_intense_nursed"),
+                        rs.getInt("cases_per_hundredthousand"),
+                        rs.getInt("cumulative_cases_per_hundredthousand")
                 );
             });
 
             return new Region(
                     affectedRegion,
                     resultSet.getInt("total_cases"),
+                    resultSet.getInt("cases_per_hundredthousand"),
                     resultSet.getInt("total_deaths"),
                     resultSet.getInt("total_intense_nursed"),
                     weeks
@@ -196,6 +231,7 @@ public class RegionDataAccessService implements RegionDao {
                         jdbcTemplate.update(UPDATE_SQL, regionUpdate.getTotalCases(),
                                 regionUpdate.getTotalDeaths(),
                                 regionUpdate.getTotalIntenseNursed(),
+                                regionUpdate.getCasesPerHundredThousand(),
                                 region.getName());
                         batchUpdateWeeks(regionUpdate.getWeekData(), region.getName());
                         return 1;
@@ -217,7 +253,8 @@ public class RegionDataAccessService implements RegionDao {
                     ps.setInt(1, regions.get(i).getTotalCases());
                     ps.setInt(2, regions.get(i).getTotalDeaths());
                     ps.setInt(3, regions.get(i).getTotalIntenseNursed());
-                    ps.setString(4, oldRegionInfo.getName());
+                    ps.setInt(4, regions.get(i).getCasesPerHundredThousand());
+                    ps.setString(5, oldRegionInfo.getName());
                     batchUpdateWeeks(regions.get(i).getWeekData(), oldRegionInfo.getName());
                 }
             }
