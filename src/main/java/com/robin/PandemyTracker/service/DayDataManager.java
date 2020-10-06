@@ -9,6 +9,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.tomcat.jni.Local;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -23,42 +24,38 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 
 @Service
-public class DayServiceClient {
-    private static final String DATA_URL_PATH = "https://www.arcgis.com/sharing/rest/content/items/b5e7488e117749c19881cce45db13f7e/data";
+public class DayDataManager {
+
+    private final DownloadManager downloadManager;
     private static final String DATE_FILE_PATH = "src/main/resources/dates/first_date_case";
-    private String path;
+    private static final int DAY_DATA_CASE_SHEET = 0;
+    private static final int DAY_DATA_DEATHS_SHEET = 1;
+    private static final int DAY_DATA_INTENSE_NURSED_SHEET = 2;
 
-    public DayServiceClient(ApplicationArguments args) throws Exception {
-        List<String> urls = args.getNonOptionArgs();
-        if (urls.size() < 1) {
-            path = DATA_URL_PATH;
-        } else if (urls.size() == 1) {
-            path = urls.get(0);
-        } else {
-            throw new Exception("Too many arguments. Should be in URL format (i.e., www.test.com)");
-        }
-
+    @Autowired
+    public DayDataManager(DownloadManager downloadManager) {
+        this.downloadManager = downloadManager;
     }
 
-    @Cacheable(value = "day_downloads", key="'Downloads'")
+    @Cacheable(value = "day_data", key="'Day_Data'")
     public List<Day> getAllDays() {
         List<Day> days = new ArrayList<>();
-        try (BufferedInputStream inputStream = new BufferedInputStream(new URL(path).openStream())) {
-            days = readDataFromFile(inputStream);
-            return days;
-        } catch (IOException | InvalidFormatException e) {
+        try {
+            days = getDayDataFromWorkbook(downloadManager.getData());
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InvalidFormatException e) {
             e.printStackTrace();
         }
         return days;
     }
 
-    private List<Day> readDataFromFile(BufferedInputStream inputStream) throws IOException, InvalidFormatException {
-        Workbook workbook = new XSSFWorkbook(inputStream);
+    private List<Day> getDayDataFromWorkbook(Workbook workbook) throws IOException, InvalidFormatException {
         List<Day> days = new ArrayList<>();
 
-        Sheet casesSheet = workbook.getSheetAt(0);
-        Sheet deathsSheet = workbook.getSheetAt(1);
-        Sheet intenseNursedSheet = workbook.getSheetAt(2);
+        Sheet casesSheet = workbook.getSheetAt(DAY_DATA_CASE_SHEET);
+        Sheet deathsSheet = workbook.getSheetAt(DAY_DATA_DEATHS_SHEET);
+        Sheet intenseNursedSheet = workbook.getSheetAt(DAY_DATA_INTENSE_NURSED_SHEET);
 
         int casesSheetLastRowNum = casesSheet.getLastRowNum();
         // -1 due to last row in deaths sheet having a information missing row.
